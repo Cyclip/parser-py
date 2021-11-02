@@ -1,4 +1,4 @@
-class ParentParsingException(Exception):
+class ParentParsingException(SyntaxError):
     """Main parsing exception
 
     Args:
