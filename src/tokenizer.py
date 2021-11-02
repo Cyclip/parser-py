@@ -3,13 +3,11 @@ from tokens import Token
 from exceptions import TokenizerException
 
 class Tokenizer:
-    KEYWORDS = {
-        
-    }
-
     OPERATORS = {
         "+": "PLUS",
         "-": "MINUS",
+        "*": "MULT",
+        "/": "DIV",
     }
 
     def __init__(self, string):

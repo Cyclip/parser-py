@@ -35,6 +35,10 @@ class Parser:
                 data['operationType'] = "SUM"
             elif self.expect("MINUS", pos):
                 data['operationType'] = "SUB"
+            elif self.expect("MULT", pos):
+                data['operationType'] = "MULT"
+            elif self.expect("DIV", pos):
+                data['operationType'] = "DIV"
             else:
                 raise ParseException(f"Unknown operator \"{self.tokens[pos]}\"")
 
