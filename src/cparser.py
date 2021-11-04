@@ -94,8 +94,4 @@ class Parser:
         return {
             "type": self.current.type,
             "val": self.exp()
-<<<<<<< HEAD
         }
-=======
-        }
->>>>>>> e4f6e01f9610a18de036113d7d7c6f56aac60b09
