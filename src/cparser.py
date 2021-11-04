@@ -3,70 +3,94 @@ from exceptions import ParseException
 from instructions import instrFor
 
 class Parser:
-    def __init__(self):
-        self.pos = -1
-        self.maxPos = None
-        self.tokens = []
-        self.__logger = logging.getLogger("parserlog")
-    
-    def parse(self, tokens):
+    """
+    Grammar:
+        exp     ::= term op exp | term
+        op      ::= / | * | + | -
+        term    ::= number | (exp)
+            * implement parenthesis
+    """
+    def __init__(self, tokens):
         self.tokens = tokens
-        self.maxPos = len(tokens) - 1
+        self.current = tokens[0]
 
-        self.__logger.debug(f"Parsing expression at pos {self.pos + 1} ({str(self.tokens[self.pos])})")
+    def parse(self):
+        return self.exp()
 
-        match = self.match("expr")
-        
-        self.__logger.debug(f"Matches: {match}")
-        return match
-    
-    """Rules"""
-    def ruleExpr(self):
-        pos = self.pos + 1
 
-        data = {}
+    """Grammar mechanics"""
+    def incrPos(self):
+        """Go to the next token"""
+        self.tokens = self.tokens[1:]
+        self.current = self.tokens[0] if len(self.tokens) > 0 else None
+      
+    def incrPosReturn(f):
+        """
+        Decorator to increase position upon grammar rule return
+        Implemented as a decorator to incrPos() after returning
+        so it does not affect the return value.
+        """
+        def wrapper(*args):
+            self = args[0]
+            rv = f(*args)
+            print(f"{f.__name__} of {self.current} => {rv}")
+            self.incrPos()
+            return rv
 
-        if self.expect("NUMBER", pos):
-            data['val1'] = self.tokens[pos]
-            pos += 1
-        
-        if pos <= self.maxPos:
-            if self.expect("PLUS", pos):
-                data['operationType'] = "SUM"
-            elif self.expect("MINUS", pos):
-                data['operationType'] = "SUB"
-            elif self.expect("MULT", pos):
-                data['operationType'] = "MULT"
-            elif self.expect("DIV", pos):
-                data['operationType'] = "DIV"
+        return wrapper
+
+    """Grammar"""
+    @incrPosReturn
+    def exp(self):
+        print("exp", str(self.current))
+        data = {"type": "exp"}
+
+        try:
+            # term 1
+            print("\nterm1")
+            data['term1'] = self.term()
+            
+            if len(self.tokens) > 2:
+                # if there are atleast 2 tokens remaining, it should be a full exp
+                print("\nop")
+                # find operator (ors)
+                data['op'] = self.op()
+            
+                print(f"\nterm1 {len(self.tokens)} left")
+                # term 2
+                data['term2'] = self.exp()
             else:
-                raise ParseException(f"Unknown operator \"{self.tokens[pos]}\"")
+                print(f"\ntransforming {data} => term\ncurrent: {self.current}")
+                # transform exp into term
+                data = self.term()
+                print(f"transformed to {data}")
+        except IndexError:
+            raise ParseException(f"Invalid syntax at end")
 
-            self.pos = pos
-            data['val2'] = self.ruleExpr()
-            return data
-
-        else:
-            data['operationType'] = None
-            return data
+        return data
     
+    @incrPosReturn
+    def op(self):
+        print("op", str(self.current))
+        if self.current.type in ("DIV", "MULT", "PLUS", "MINUS"):
+            return {
+                "type": "op",
+                "val": self.current.type
+            }
+
+        raise ParseException(f"Unknown operator token \"{self.current.val}\"")
     
-    """Rule mechanics"""
-    def expect(self, type_, pos):
-
-        if pos > self.maxPos:
-            raise ParseException(f"Expected token at pos {pos} but reached EOL (max {self.maxPos})")
-
-        result = self.tokens[pos].type == type_
-        self.__logger.debug(f"Expecting {type_} at pos {pos} ({str(self.tokens[self.pos])}): {result}")
-
-        return result
-
-    def match(self, *rules):
-        for rule in rules:
-            self.__logger.debug(f"Matching rule {rule} at pos {self.pos + 1} ({str(self.tokens[self.pos])})")
-            rv = getattr(self, "rule" + rule.capitalize())()
-            if rv:
-                return rv
+    @incrPosReturn
+    def term(self):
+        print("term", str(self.current))
+        if self.current.type == "NUMBER":
+            return {
+                "type": self.current.type,
+                "val": self.current.val
+            }
         
-        raise ParseException(f"No rule matches: {', '.join(rules)}")
+        # must be exp
+        return {
+            "type": self.current.type,
+            "val": self.exp()
+        }
