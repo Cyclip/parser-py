@@ -14,7 +14,6 @@ class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.current = tokens[0]
-<<<<<<< HEAD
 
     def parse(self):
         return self.exp()
@@ -47,40 +46,6 @@ class Parser:
         print("exp", str(self.current))
         data = {"type": "exp"}
 
-=======
-
-    def parse(self):
-        return self.exp()
-
-
-    """Grammar mechanics"""
-    def incrPos(self):
-        """Go to the next token"""
-        self.tokens = self.tokens[1:]
-        self.current = self.tokens[0] if len(self.tokens) > 0 else None
-      
-    def incrPosReturn(f):
-        """
-        Decorator to increase position upon grammar rule return
-        Implemented as a decorator to incrPos() after returning
-        so it does not affect the return value.
-        """
-        def wrapper(*args):
-            self = args[0]
-            rv = f(*args)
-            print(f"{f.__name__} of {self.current} => {rv}")
-            self.incrPos()
-            return rv
-
-        return wrapper
-
-    """Grammar"""
-    @incrPosReturn
-    def exp(self):
-        print("exp", str(self.current))
-        data = {"type": "exp"}
-
->>>>>>> e4f6e01f9610a18de036113d7d7c6f56aac60b09
         try:
             # term 1
             print("\nterm1")
