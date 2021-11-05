@@ -117,3 +117,4 @@ dmypy.json
 */__init__.py
 src/test.py
 src/test.bat
+src/grammar.txt

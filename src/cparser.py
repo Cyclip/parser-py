@@ -14,6 +14,7 @@ class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.current = tokens[0]
+        self.__logger = logging.getLogger("parserLog")
 
     def parse(self):
         return self.exp()
@@ -33,8 +34,12 @@ class Parser:
         """
         def wrapper(*args):
             self = args[0]
+
+            if self.current is None:
+                return None
+
             rv = f(*args)
-            print(f"{f.__name__} of {self.current} => {rv}")
+            self.__logger.debug(f"{self.current} returns {rv} \t{[str(i) for i in self.tokens]}")
             self.incrPos()
             return rv
 
@@ -43,28 +48,27 @@ class Parser:
     """Grammar"""
     @incrPosReturn
     def exp(self):
-        print("exp", str(self.current))
         data = {"type": "exp"}
 
         try:
             # term 1
-            print("\nterm1")
+            self.__logger.debug("Getting term1")
             data['term1'] = self.term()
             
-            if len(self.tokens) > 2:
+            if len(self.tokens) >= 2:
                 # if there are atleast 2 tokens remaining, it should be a full exp
-                print("\nop")
+                self.__logger.debug("Getting operator")
                 # find operator (ors)
                 data['op'] = self.op()
             
-                print(f"\nterm1 {len(self.tokens)} left")
+                self.__logger.debug(f"Getting term2 - {len(self.tokens)} left")
                 # term 2
                 data['term2'] = self.exp()
             else:
-                print(f"\ntransforming {data} => term\ncurrent: {self.current}")
+                self.__logger.debug(f"Transforming {data} => term\nCurrent: {self.current}")
                 # transform exp into term
-                data = self.term()
-                print(f"transformed to {data}")
+                data = data['term1']
+                self.__logger.debug(f"Transformed to {data}")
         except IndexError:
             raise ParseException(f"Invalid syntax at end")
 
@@ -72,7 +76,7 @@ class Parser:
     
     @incrPosReturn
     def op(self):
-        print("op", str(self.current))
+        self.__logger.debug("op " + str(self.current))
         if self.current.type in ("DIV", "MULT", "PLUS", "MINUS"):
             return {
                 "type": "op",
@@ -83,7 +87,7 @@ class Parser:
     
     @incrPosReturn
     def term(self):
-        print("term", str(self.current))
+        self.__logger.debug("term " + str(self.current))
         if self.current.type == "NUMBER":
             return {
                 "type": self.current.type,

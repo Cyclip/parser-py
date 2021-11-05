@@ -1,7 +1,13 @@
 import time
 import json
+import logging
 from tokenizer import Tokenizer
 from cparser import Parser
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[%(asctime)s] %(levelname)s at %(funcName)s():%(lineno)s  =>  %(message)s",
+)
 
 def parseArgs(args):
     print(f"Args: {args}")
@@ -21,7 +27,11 @@ testData = [
 
 expectedOutputs = [eval(i) for i in testData]
 
-for i, arg in enumerate(testData):
+print(f"Args: {testData[0]}")
+parseArgs(testData[0])
+
+"""for i, arg in enumerate(testData):
     print(f"-- TEST {i + 1} --")
     parseArgs(arg)
     print("\n\n\n")
+    break"""
