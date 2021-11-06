@@ -4,10 +4,6 @@ import logging
 from tokenizer import Tokenizer
 from cparser import Parser
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[%(asctime)s] %(levelname)s at %(funcName)s():%(lineno)s  =>  %(message)s",
-)
 
 def parseArgs(args):
     print(f"Args: {args}")
@@ -17,21 +13,27 @@ def parseArgs(args):
 
     parsed = Parser(tokens).parse()
     print("parsed:", json.dumps(parsed, indent=4))
+    return parsed
 
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[%(asctime)s] (%(levelname)s) %(funcName)s  =>  %(message)s",
+)
 
 testData = [
-    "1 + 2 * 3 + 4",
+    "5 + 3",
     "3 * 2 / 2",
-    "4 + 2 + 1 - 3"
+    "4 + 2 + 1 - 3",
+    "1 + 2 * 3 + 4",
+    "1 + 2 * 3 * 4 + 5",
+    "1 + 5(3 - 2)",
 ]
 
-expectedOutputs = [eval(i) for i in testData]
+expectedOutputs = [8, 3.0, 4, 11, 30, 6,]
 
-print(f"Args: {testData[0]}")
-parseArgs(testData[0])
-
-"""for i, arg in enumerate(testData):
-    print(f"-- TEST {i + 1} --")
-    parseArgs(arg)
-    print("\n\n\n")
-    break"""
+argsI = -1
+args = testData[argsI]
+print(f"Args: {args}")
+parseArgs(args)
+print(f"Expected output: {expectedOutputs[argsI]}")

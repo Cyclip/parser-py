@@ -6,14 +6,14 @@ from instructions import instrFor
 class Parser:
     """
     Grammar:
-        exp     ::= term op exp | term
-        op      ::= / | * | + | -
-        term    ::= number | (exp)
-            * implement parenthesis
+        <exp>       ::= <term> + <term> | <term> - <term> | term
+        <term>      ::= <factor> * <term> | <factor> / <term> | factor
+        <factor>    ::= integer | ( <exp> )
     """
     def __init__(self, tokens):
         self.tokens = tokens
-        self.current = tokens[0]
+        self.pos = 0
+        self.current = tokens[self.pos]
         self.__logger = logging.getLogger("parserLog")
 
     def parse(self):
@@ -21,81 +21,110 @@ class Parser:
 
 
     """Grammar mechanics"""
-    def incrPos(self):
-        """Go to the next token"""
-        self.tokens = self.tokens[1:]
-        self.current = self.tokens[0] if len(self.tokens) > 0 else None
-      
-    def incrPosReturn(f):
-        """
-        Decorator to increase position upon grammar rule return
-        Implemented as a decorator to incrPos() after returning
-        so it does not affect the return value.
-        """
+    def next(self):
+        self.pos += 1
+        self.updateCurrent()
+        self.__logger.debug(f"Increased pos to {self.pos}: {str(self.current)}")
+    
+    def prev(self):
+        self.pos -= 1
+        self.updateCurrent()
+        self.__logger.debug(f"Decreased pos to {self.pos}: {str(self.current)}")
+
+    def updateCurrent(self):
+        self.current = self.tokens[self.pos] if len(self.tokens) > self.pos else None
+
+    def rule(f):
         def wrapper(*args):
             self = args[0]
 
-            if self.current is None:
-                return None
-
+            self.__logger.debug(f"Calling {f.__name__}() at pos {self.pos}/{len(self.tokens) - 1}")
             rv = f(*args)
-            self.__logger.debug(f"{self.current} returns {rv} \t{[str(i) for i in self.tokens]}")
-            self.incrPos()
+            self.__logger.debug(f"{f.__name__}() returned {rv}")
+
             return rv
 
         return wrapper
+    
+    def reachedEOF(self):
+        self.__logger.debug(f"Reached EOF at pos {self.pos}")
+        return self.current is None
+
+    def expect(self, type_, error=False):
+        if error:
+            if self.current.type != type_:
+                raise ParseException(f"Expected token {type_}, got {self.current.type} ({self.current.val})")
+        else:
+            return self.current.type == type_
 
     """Grammar"""
-    @incrPosReturn
+    @rule
     def exp(self):
-        data = {"type": "exp"}
+        self.__logger.debug(f"Finding term1")
+        term1 = self.term()
+        self.__logger.debug(f"Found term1 {term1}")
 
-        try:
-            # term 1
-            self.__logger.debug("Getting term1")
-            data['term1'] = self.term()
-            
-            if len(self.tokens) >= 2:
-                # if there are atleast 2 tokens remaining, it should be a full exp
-                self.__logger.debug("Getting operator")
-                # find operator (ors)
-                data['op'] = self.op()
-            
-                self.__logger.debug(f"Getting term2 - {len(self.tokens)} left")
-                # term 2
-                data['term2'] = self.exp()
+        self.next()
+
+        while not self.reachedEOF():
+            if self.expect("PLUS"):
+                self.__logger.debug(f"Current is plus")
+                self.next()
+                term2 = self.term()
+
+                term1 += term2
+            elif self.expect("MINUS"):
+                self.__logger.debug(f"Current is minus")
+                self.next()
+                term2 = self.term()
+
+                term1 -= term2
             else:
-                self.__logger.debug(f"Transforming {data} => term\nCurrent: {self.current}")
-                # transform exp into term
-                data = data['term1']
-                self.__logger.debug(f"Transformed to {data}")
-        except IndexError:
-            raise ParseException(f"Invalid syntax at end")
+                self.prev()
+                break
+            
+            self.next()
 
-        return data
+        return term1
     
-    @incrPosReturn
-    def op(self):
-        self.__logger.debug("op " + str(self.current))
-        if self.current.type in ("DIV", "MULT", "PLUS", "MINUS"):
-            return {
-                "type": "op",
-                "val": self.current.type
-            }
-
-        raise ParseException(f"Unknown operator token \"{self.current.val}\"")
-    
-    @incrPosReturn
+    @rule
     def term(self):
-        self.__logger.debug("term " + str(self.current))
-        if self.current.type == "NUMBER":
-            return {
-                "type": self.current.type,
-                "val": self.current.val
-            }
-        
-        # must be exp
-        return {
-            "type": self.current.type,
-            "val": self.exp()
-        }
+        self.__logger.debug(f"Finding factor")
+        factor = self.factor()
+        self.__logger.debug(f"Factor is {factor}")
+
+        self.next()
+
+        if not self.reachedEOF():
+            if self.expect("MULT"):
+                self.__logger.debug(f"Current is mult")
+                self.next()
+                term = self.term()
+
+                return factor * term
+            elif self.expect("DIV"):
+                self.__logger.debug(f"Current is div")
+                self.next()
+                term = self.term()
+
+                return factor / term
+            
+            self.prev()
+        self.__logger.debug(f"Current ({str(self.current)}) is neither * or /")
+        return factor
+    
+    @rule
+    def factor(self):
+        self.__logger.debug(f"Current: {str(self.current)}")
+        if self.expect("NUMBER"):
+            self.__logger.debug(f"Current is a number")
+            rv = self.current.val
+            return rv
+        elif self.expect("PARENOPEN"):
+            self.__logger.debug(f"Current is (, parsing exp")
+            self.next()
+            exp = self.exp()
+            self.expect("PARENCLOSE", error=True)
+
+            return exp
+            

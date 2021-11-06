@@ -8,6 +8,8 @@ class Tokenizer:
         "-": "MINUS",
         "*": "MULT",
         "/": "DIV",
+        "(": "PARENOPEN",
+        ")": "PARENCLOSE",
     }
 
     def __init__(self, string):
@@ -44,15 +46,15 @@ class Tokenizer:
                 if tmp is None:
                     # not an operator, must be a number
                     if current.isdigit():
-                        self.__logger.debug(f"[=] Appending digit token {current}")
+                        self.__logger.debug(f"Appending digit token {current}")
                         tokens.append(Token("NUMBER", val=int(current)))
                         current = ""
                     else:
                         raise TokenizerException(f"Unknown token \"{current}\"", string=self.__string, index=charIndex)
                 else:
-                    self.__logger.debug(f"[=] Appending operator token \"{char}\"")
+                    self.__logger.debug(f"Appending operator token \"{char}\"")
                     current = ""
-                    tokens.append(Token(tmp))
+                    tokens.append(Token(tmp, val=char))
             
             self.__logger.debug(f"Tokens: {tokens}\n")
 
